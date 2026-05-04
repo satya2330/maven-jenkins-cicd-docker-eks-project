@@ -6,7 +6,7 @@ pipeline {
   stages {
     stage('Clone') {
       steps {
-        git credentialsId: 'github-creds', url: 'https://github.com/arumullayaswanth/maven-jenkins-cicd-docker-eks-project.git'
+        git credentialsId: 'github-creds', url: 'https://github.com/satya2330/maven-jenkins-cicd-docker-eks-project.git'
       }
     }
     stage('Maven Build') {

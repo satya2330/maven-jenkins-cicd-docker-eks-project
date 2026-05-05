@@ -397,19 +397,17 @@ pipeline {
     agent any // 🖥️ Use any available Jenkins agent (node) to run the pipeline
 
     environment {
-        AWS_ACCOUNT_ID = '242201296943'   // replace AWS account ID
-        AWS_ECR_REPO_NAME = 'demo'         // replace AWS account ID
-        AWS_DEFAULT_REGION = 'us-east-2'   // replace AWS region
+        AWS_ACCOUNT_ID = '684365645804'
+        AWS_ECR_REPO_NAME = 'demo'
+        AWS_DEFAULT_REGION = 'us-east-1'
         REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
-        GIT_REPO_NAME = "maven-jenkins-cicd-docker-eks-project"  // replace your github rep name
-        GIT_EMAIL = "yaswanth.arumulla@gmail.com"          //replacr your email id
-        GIT_USER_NAME = "arumullayaswanth"            // replace your user name
+        GIT_REPO_NAME = "maven-jenkins-cicd-docker-eks-project"
+        GIT_EMAIL = "satyadevops30@gmail.com"
+        GIT_USER_NAME = "satya2330"
         YAML_FILE = "deploy_svc.yml"
     }
 
     stages {
-         // no change in this stage
-
         stage('Cleaning Workspace') {
             steps {
                 cleanWs()
@@ -418,16 +416,16 @@ pipeline {
 
         stage('Checkout from Git') {
             steps {
-                git branch: 'master', url: 'https://github.com/arumullayaswanth/maven-jenkins-cicd-docker-eks-project.git'
+                git branch: 'master', url: "https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git"
             }
         }
-        // no change in this stage
+
         stage("List Files") {
             steps {
-                sh 'ls -la'
+                sh 'ls -R' // Recursive list to help you see where files are
             }
         }
-         // no change in this stage
+
         stage('Maven Build & Test') {
             steps {
                 sh 'mvn clean verify'
@@ -442,49 +440,50 @@ pipeline {
             }
         }
 
-         // no change in this stage
         stage('Test Docker Access') {
             steps {
                 sh 'docker --version && docker ps'
             }
         }
-         // no change in this stage
+
         stage("Docker Image Build") {
             steps {
                 script {
                     sh 'docker system prune -f'
-                    sh 'docker container prune -f'
                     sh 'docker build -t ${AWS_ECR_REPO_NAME} .'
                 }
             }
         }
-         // no change in this stage
+
         stage("ECR Image Pushing") {
             steps {
                 script {
-                    sh 'aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REPOSITORY_URI}'
-                    sh 'docker tag ${AWS_ECR_REPO_NAME}:latest ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}'
-                    sh 'docker push ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}'
+                    sh "aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REPOSITORY_URI}"
+                    sh "docker tag ${AWS_ECR_REPO_NAME}:latest ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}"
+                    sh "docker push ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}"
                 }
             }
         }
-        // no change in this stage Except dir name=dir('Kubernetes-Manifests-file'')
+
         stage('Update Deployment file') {
             steps {
+                // We enter the subdirectory where the YAML file lives
                 dir('Kubernetes-Manifests-file') {
-                    sh 'ls -la'
-                    withCredentials([string(credentialsId: 'my-git-pattoken', variable: 'git_token')]) {
+                    withCredentials([usernamePassword(credentialsId: 'jenkins-github-token', passwordVariable: 'GITHUB_TOKEN', usernameVariable: 'GITHUB_USER')]) {
                         sh '''
+                            # 1. Setup Git identity locally in this workspace
                             git config user.email "${GIT_EMAIL}"
                             git config user.name "${GIT_USER_NAME}"
-                            BUILD_NUMBER=${BUILD_NUMBER}
-                            echo $BUILD_NUMBER
 
-                            sed -i "s#image:.*#image: ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:$BUILD_NUMBER#g" ${YAML_FILE}
-
+                            # 2. Use sed to replace the image tag
+                            sed -i "s#image:.*#image: ${REPOSITORY_URI}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}#g" ${YAML_FILE}
+                            
+                            # 3. Commit the change
                             git add ${YAML_FILE}
-                            git commit -m "Update ${AWS_ECR_REPO_NAME} Image to version \${BUILD_NUMBER}"
-                            git push https://${git_token}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
+                            git commit -m "Update image to version ${BUILD_NUMBER} [skip ci]"
+                            
+                            # 4. Push back to GitHub using the token for auth
+                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:master
                         '''
                     }
                 }
@@ -492,7 +491,6 @@ pipeline {
         }
     }
 }
-
 
 ```
 

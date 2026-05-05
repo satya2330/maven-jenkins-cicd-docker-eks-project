@@ -12,8 +12,8 @@
 
   <artifactId>server</artifactId>
   <packaging>jar</packaging>
-  <name>Server</name>
-  <description>Logic.</description>
+  <name>Server Logic</name>
+  <description>Backend business logic for the Maven project.</description>
 
   <build>
     <finalName>${project.artifactId}</finalName>
@@ -22,19 +22,7 @@
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
-      <artifactId>junit-dep</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency> 
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-library</artifactId>
+      <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
 
